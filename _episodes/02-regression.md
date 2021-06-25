@@ -4,28 +4,103 @@ teaching: 45
 exercises: 30
 questions:
 - "How can I make linear regression models from data?"
-- "How can I use logarithmic regression to work with non-linear data?"
+- "How can I use logarithmic regression to work with some kinds of non-linear data?"
+- "How can I use multilinear regression?"
 objectives:
 - "Learn how to use linear regression to produce a model from data."
 - "Learn how to model non-linear data using a logarithmic."
+- "Learn how to model functions with multiple inputs."
 - "Learn how to measure the error between the original data and a linear model." 
 keypoints:
 - "We can model linear data using a linear or least squares regression."
-- "A linear regression model can be used to predict future values."
-- "We should split up our training dataset and use part of it to test the model."
-- "For non-linear data we can use logarithms to make the data linear."
+- "A linear regression model can be used to predict values within the range of validity."
+- "We should test models with data that has not been used to fit them."
+- "Transformations of the data may allow for fitting of linear models to nonlinear relationships."
 ---
 
 # Linear regression
 
-If we take two variable and graph them against each other we can look for relationships between them. Once this relationship is established we can use that to produce a model which will help us predict future values of one variable given the other. 
+If we take two variable and graph them against each other we can look for relationships between them. Once this relationship is established we can use that to produce a model which will help us predict values of one variable given the other. 
 
 If the two variables form a linear relationship (a straight line can be drawn to link them) then we can create a linear equation to link them. This will be of the form y = m * x + c, where x is the variable we know, y is the variable we're calculating, m is the slope of the line linking them and c is the point at which the line crosses the y axis (where x = 0). 
 
-Using the Gapminder website we can graph all sorts of data about the development of different countries. Lets have a look at the change in [life expectancy over time in the United Kingdom](https://www.gapminder.org/tools/#$state$time$value=2018&showForecast:true&delay:100;&entities$filter$;&dim=geo;&marker$select@$geo=gbr&trailStartTime=1800;;&axis_x$which=time&domainMin:null&domainMax:null&zoomedMin=1800&zoomedMax=2018&scaleType=time&spaceRef:null;&axis_y$domainMin:null&domainMax:null&zoomedMin:1&zoomedMax:84.17&spaceRef:null;&size$domainMin:null&domainMax:null&extent@:0.022083333333333333&:0.4083333333333333;;&color$which=world_6region;;;&chart-type=bubbles).
+[Kepler observed the following relationships between the mean distance of a planet from the Sun to it's period](https://en.wikipedia.org/wiki/Kepler%27s_laws_of_planetary_motion)
 
-Since around 1950 life expectancy appears to be increasing with a pretty straight line in other words a linear relationship. We can use this data to try and calculate a line of best fit that will attempt to draw a perfectly straight line through this data. One method we can use is called [linear regression or least square regression](https://www.mathsisfun.com/data/least-squares-regression.html). The linear regression will create a linear equation that minimises the average distance from the line of best fit to each point in the graph. It will calculate the values of m and c for a linear equation for us. We could do this manually, but lets use Python to do it for us. 
+| Planet  | Mean distance to sun (AU) |	Period (days) |
+|--       | --                        |--             |
+| Mercury | 0.389                     |	87.77         |
+| Venus   | 0.724                     | 224.70        | 	
+| Earth   | 1 	                      | 365.25        |	
+| Mars 	  | 1.524                     | 686.95        |
+| Jupiter | 5.20                      | 4332.62       |
+| Saturn  | 9.510                     | 10759.2       |
 
+Let us plot this data
+
+~~~
+import matplotlib.pyplot as plt
+
+def make_plot(x_data, y_data, x_label, y_label):
+    plt.scatter(x_data, y_data, label="Original Data")
+    plt.grid()
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig("planets_graph.svg")
+    
+x_data = [0.389,0.724,1,1.524,5.20,9.510]
+y_data = [87.77,224.70,365.25,686.95,4332.62,10759.2]
+x_label = "Mean distance to sun (AU)"
+y_label = "Period (days)"
+make_plot(x_data, y_data, x_label, y_label)
+
+~~~
+{: .python}
+
+![graph of planet period against distance from the sun](../fig/planets_graph.svg)
+
+The graph shows that as the distance from the sun increases, so does the time to complete a single orbit.
+However, the relationship is not linear.  One can use logarithms to see if there is a power law 
+relationship.
+
+> ## Logarithms Introduction
+> Logarithms are the inverse of an exponent (raising a number by a power). 
+> logb(a) = c 
+> b^c = a
+> For example:
+> 2^5 = 32
+> log2(32) = 5
+> If you need more help on logarithms see the [Khan Academy's page](https://www.khanacademy.org/math/algebra2/exponential-and-logarithmic-functions/introduction-to-logarithms/a/intro-to-logarithms)
+> {: .callout}
+
+Therefore, one can plot
+
+~~~
+import matplotlib.pyplot as plt
+import numpy as np
+
+def make_plot(x_data, y_data, x_label, y_label):
+    plt.scatter(x_data, y_data, label="Original Data")
+    plt.grid()
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig('planets_log_graph.svg')
+
+x_data = [0.389,0.724,1,1.524,5.20,9.510]
+y_data = [87.77,224.70,365.25,686.95,4332.62,10759.2]
+log_x_data = np.log(x_data)
+log_y_data = np.log(y_data)
+x_label = "log(Mean distance to sun (AU))"
+y_label = "log(Period (days))"
+make_plot(log_x_data, log_y_data, x_label, y_label)
+
+~~~
+{: .python}
+
+![graph of log planet period against log distance from the sun](../fig/planets_log_graph.svg)
+
+In this case, there is an approximate linear relationship. The coefficients can also be calculated
 
 ## Coding a linear regression with Python 
 This code will calculate a least squares or linear regression for us.
@@ -44,7 +119,7 @@ def least_squares(data):
     n = len(data[0])
     # least squares regression calculation
     for i in range(0, n):
-        x = int(data[0][i])
+        x = data[0][i]
         y = data[1][i]
         x_sum = x_sum + x
         y_sum = y_sum + y
@@ -56,20 +131,16 @@ def least_squares(data):
     c = (y_sum - m * x_sum) / n
 
     print("Results of linear regression:")
-    print("x_sum=", x_sum, "y_sum=", y_sum, "x_sq_sum=", x_sq_sum, "xy_sum=",
-          xy_sum)
     print("m=", m, "c=", c)
 
     return m, c
 ~~~
 {: .python}
 
-Lets test our code by using the example data from the mathsisfun link above. 
+Lets test our code.
 
 ~~~
-x_data = [2,3,5,7,9]
-y_data = [4,5,7,10,15]
-least_squares([x_data,y_data])
+least_squares([log_x_data,log_y_data)])
 ~~~
 {: .python}
 
@@ -77,9 +148,10 @@ We should get the following results:
 
 ~~~
 Results of linear regression:
-x_sum= 26 y_sum= 41 x_sq_sum= 168 xy_sum= 263
-m= 1.5182926829268293 c= 0.30487804878048763
+m= 1.5031353477782914 c= 5.897898811978949
 ~~~
+
+This validates Kepler's observation that `(Mean distance to sun )^3 ∝ (Period )^2` 
 
 ### Testing the accuracy of a linear regression model
 
@@ -98,384 +170,519 @@ def measure_error(data1, data2):
 ~~~
 {: .python}
 
-
-To calculate the RMS for the test data we just used we need to calculate the y coordinate for every x coordinate (2,3,5,7,9) that we had in the original data. 
+To calculate the RMS for the test data we just used we need to calculate the y coordinate for every x coordinate that we had in the original data. 
 
 ~~~
 # get the m and c values from the least_squares function
-m, c = least_squares([x_data,y_data])
+m, c = least_squares([log_x_data,log_y_data])
 
 # create an empty list for the model y data
-linear_data = []
-
-for x in x_data:
-    y = m * x + c
-    # add the result to the linear_data list
-    linear_data.append(y)
+fitted_data = np.exp(c) * np.power(x_data,m)
 
 # calculate the error
-print(measure_error(y_data,linear_data))
+print(measure_error(y_data,fitted_data))
 ~~~
 {: .python}
 
-This will output an error of 0.7986268703523449, which means that on average the difference between our model and the real values is 0.7986268703523449. The less linear the data is the bigger this number will be. If the model perfectly matches the data then the value will be zero.
+This will output an error of 3.813100984286817, which means that on average the difference between our model and the real values is 3.813100984286817. If the model perfectly matches the data then the value will be zero.
 
-
-### Graphing the data
-
-To compare our model and data lets graph both of them using matplotlib.
-
-~~~
-import matplotlib.pyplot as plt
-
-def make_linear(x_data, m, c):
-    linear_data = []
-    for x in x_data:
-        y = m * x + c
-        #add the result to the linear_data list
-        linear_data.append(y)
-    return(linear_data)
-
-def make_graph(x_data, y_data, linear_data):
-
-    plt.plot(x_data, y_data, label="Original Data")
-    plt.plot(x_data, linear_data, label="Line of best fit")
-
-    plt.grid()
-    plt.legend()
-
-    plt.show()
-    
-x_data = [2,3,5,7,9]
-y_data = [4,5,7,10,15]]
-
-m, c = least_squares([x_data, y_data])
-linear_data = make_linear(x_data, m, c)
-make_graph(x_data, y_data, make_linear(x_data, m, c))
-
-~~~
-{: .python}
-
-![graph of the test regression data](../fig/regression_test_graph.png)
-
-
-### Predicting life expectancy
-
-Now lets try and model some real data with linear regression. We'll use the [Gapminder Foundation's](http://www.gapminder.org) life expectancy data for this. Click [here](../data/gapminder-life-expectancy.csv) to download it.
-
-~~~
-# put this line at the top of the file
-import pandas as pd 
-
-def process_life_expectancy_data(filename, country, min_date, max_date):
-
-    df = pd.read_csv(filename, index_col="Life expectancy")
-
-    # get the life expectancy for the specified country/dates
-    # we have to convert the dates to strings as pandas treats them that way
-    life_expectancy = df.loc[country, str(min_date):str(max_date)]
-
-    # create a list with the numerical range of min_date to max_date
-    # we could use the index of life_expectancy but it will be a string
-    # we need numerical data
-    x_data = list(range(min_date, max_date + 1))
-
-    # calculate line of best fit
-    m, c = least_squares([x_data, life_expectancy])
-    linear_data = make_linear(x_data, m, c)
-
-    error = measure_error(life_expectancy, linear_data)
-    print("error is ", error)
-
-    make_graph(x_data, life_expectancy, linear_data)
-
-process_life_expectancy_data("../data/gapminder-life-expectancy.csv",
-                             "United Kingdom", 1950, 2010)
-~~~
-{: .python}
-
-
-> # Modelling Life Expectancy
->
-> Combine all the code above into a single Python file, save it into a directory called code. 
->
-> In the parent directory create another directory called data
->
-> Download the file [https://scw-aberystwyth.github.io/machine-learning-novice/data/gapminder-life-expectancy.csv](https://scw-aberystwyth.github.io/machine-learning-novice/data/gapminder-life-expectancy.csv) into the data directory 
-> The full code from above is also available to download from [https://scw-aberystwyth.github.io/machine-learning-novice/code/linear_regression.py](https://scw-aberystwyth.github.io/machine-learning-novice/code/linear_regression.py)
->
-> If you're using a Unix or Unix like environment the following commands will do this in your home directory:
->
-> ~~~
-> cd ~
-> mkdir code
-> mkdir data
-> cd data
-> wget https://scw-aberystwyth.github.io/machine-learning-novice/data/gapminder-life-expectancy.csv
-> ~~~
-> {: .bash}
->
-> Adjust the program to calculate the life expectancy for Germany between 1950 and 2000. What are the values (m and c) of linear equation linking date and life expectancy?
-> > ## Solution
-> > ~~~
-> > process_life_expectancy_data("../data/gapminder-life-expectancy.csv", "Germany", 1950, 2000)
-> > ~~~ 
-> > {: .python}
-> > 
-> > m= 0.212219909502 c= -346.784909502
-> {: .solution}
-{: .challenge}
-
-
-> # Predicting Life Expectancy
-> Use the linear equation you've just created to predict life expectancy in Germany for every year between 2001 and 2016. How accurate are your answers?
-> If you worked for a pension scheme would you trust your answers to predict the future costs for paying pensioners?
-> > ## Solution
-> > ~~~
-> > for x in range(2001,2017):
-> >     print(x,0.212219909502 * x - 346.784909502)
-> > ~~~
-> > {: .python}
-> > 
-> > Predicted answers:
-> > ~~~
-> > 2001 77.86712941150199
-> > 2002 78.07934932100403
-> > 2003 78.29156923050601
-> > 2004 78.503789140008
-> > 2005 78.71600904951003
-> > 2006 78.92822895901202
-> > 2007 79.140448868514
-> > 2008 79.35266877801604
-> > 2009 79.56488868751802
-> > 2010 79.77710859702
-> > 2011 79.98932850652199
-> > 2012 80.20154841602402
-> > 2013 80.41376832552601
-> > 2014 80.62598823502799
-> > 2015 80.83820814453003
-> > 2016 81.05042805403201
-> > ~~~
-> > Compare with the real values:
-> > ~~~
-> > df = pd.read_csv('../data/gapminder-life-expectancy.csv',index_col="Life expectancy")
-> > for x in range(2001,2017):
-> >     y = 0.215621719457 * x - 351.935837103
-> >     real = df.loc['Germany', str(x)]
-> >     print(x, "Predicted", y, "Real", real, "Difference", y-real)
-> > ~~~
-> > {: .python}
-> > 
-> > ~~~
-> > 2001 Predicted 77.86712941150199 Real 78.4 Difference -0.532870588498
-> > 2002 Predicted 78.07934932100403 Real 78.6 Difference -0.520650678996
-> > 2003 Predicted 78.29156923050601 Real 78.8 Difference -0.508430769494
-> > 2004 Predicted 78.503789140008 Real 79.2 Difference -0.696210859992
-> > 2005 Predicted 78.71600904951003 Real 79.4 Difference -0.68399095049
-> > 2006 Predicted 78.92822895901202 Real 79.7 Difference -0.771771040988
-> > 2007 Predicted 79.140448868514 Real 79.9 Difference -0.759551131486
-> > 2008 Predicted 79.35266877801604 Real 80.0 Difference -0.647331221984
-> > 2009 Predicted 79.56488868751802 Real 80.1 Difference -0.535111312482
-> > 2010 Predicted 79.77710859702 Real 80.3 Difference -0.52289140298
-> > 2011 Predicted 79.98932850652199 Real 80.5 Difference -0.510671493478
-> > 2012 Predicted 80.20154841602402 Real 80.6 Difference -0.398451583976
-> > 2013 Predicted 80.41376832552601 Real 80.7 Difference -0.286231674474
-> > 2014 Predicted 80.62598823502799 Real 80.7 Difference -0.074011764972
-> > 2015 Predicted 80.83820814453003 Real 80.8 Difference 0.03820814453
-> > 2016 Predicted 81.05042805403201 Real 80.9 Difference 0.150428054032
-> > ~~~
-> > Answers are between 0.15 years over and 0.77 years under the reality. 
-> > If this was being used in a pension scheme it might lead to a slight under prediction of life expectancy and cost the pension scheme a little more than expected.
-> {: .solution}
-{: .challenge}
-
-
-
-
-> # Predicting Historical Life Expectancy
+> # Predicting the Period of Pluto
 > 
-> Now change your program to measure life expectancy in Canada between 1890 and 1914. Use the resulting m and c values to predict life expectancy in 1918. How accurate is your answer?
-> If your answer was inaccurate, why was it inaccurate? What does this tell you about extrapolating models like this?
+> Pluto also orbits the sun. Can you use the fitted model to predict the period of Pluto?
+> Some information on Pluto can be found on
+> [Wikipedia](https://en.wikipedia.org/wiki/Pluto) as well as on 
+> [NASA's website](https://solarsystem.nasa.gov/planets/dwarf-planets/pluto/in-depth/)  
+>
 > > ## Solution
-> > ~~~
-> > process_life_expectancy_data("../data/gapminder-life-expectancy.csv", "Canada", 1890, 1914)
-> > ~~~
-> > {: .python}
+> >
+> > From the above links, Pluto has an average distance from the Sun 
+> > of 39.5 AU.
 > > 
-> > m = 0.369807692308 c = -654.215830769
+> > m= 1.5031353477782914 c= 5.897898811978949
 > > ~~~
-> > print(1918 * 0.369807692308  -654.215830769)
+> > print( np.exp(5.897898811978949) * np.power(39.5,1.5031353477782914))
 > > ~~~
 > > {: .python}
-> > predicted age: 55.0753, actual 47.17
-> > Inaccurate due to WW1 and flu epedemic. Major events can produce trends that we've not seen before (or not for a long time), our models struggle to take account of things they've never seen.
-> > Even if we look back to 1800, the earliest date we have data for we never see a sudden drop in life expectancy like the 1918 one.
+> > predicted period: 91480.05972244845 days, actual period 90520 days
+> >
+> > This is not bad, however, the input data is far outside the
+> > range of the values used to fit the model.  Discuss whether
+> > this could cause problems if used for prediction in other 
+> > scenarios? What other reasons might account for this discrepancy?
 > {: .solution}
 {: .challenge}
 
-# logarithmic Regression
-
-We've now seen how we can use linear regression to make a simple model and use that to predict values, but what do we do when the relationship between the data isn't linear? 
-
-As an example lets take the relationship between income (GDP per Capita) and life expectancy. The gapminder website will [graph](https://www.gapminder.org/tools/#$state$time$value=2017&showForecast:true&delay:206.4516129032258;&entities$filter$;&dim=geo;&marker$axis_x$which=life_expectancy_years&domainMin:null&domainMax:null&zoomedMin:45&zoomedMax:84.17&scaleType=linear&spaceRef:null;&axis_y$which=gdppercapita_us_inflation_adjusted&domainMin:null&domainMax:null&zoomedMin:115.79&zoomedMax:144246.37&spaceRef:null;&size$domainMin:null&domainMax:null&extent@:0.022083333333333333&:0.4083333333333333;;&color$which=world_6region;;;&chart-type=bubbles) this for us. 
-
-> ## Logarithms Introduction
-> Logarithms are the inverse of an exponent (raising a number by a power). 
-> logb(a) = c 
-> b^c = a
-> For example:
-> 2^5 = 32
-> log2(32) = 5
-> If you need more help on logarithms see the [Khan Academy's page](https://www.khanacademy.org/math/algebra2/exponential-and-logarithmic-functions/introduction-to-logarithms/a/intro-to-logarithms)
-> {: .callout}
-
-
-The relationship between these two variables clearly isn't linear. But there is a trick we can do to make the data appear to be linear, we can take the logarithm of the Y axis (the GDP) by clicking on the arrow on the left next to GDP/capita and choosing log. [This graph](https://www.gapminder.org/tools/#$state$time$value=2017&showForecast:true&delay:206.4516129032258;&entities$filter$;&dim=geo;&marker$axis_x$which=life_expectancy_years&domainMin:null&domainMax:null&zoomedMin:45&zoomedMax:84.17&scaleType=linear&spaceRef:null;&axis_y$which=gdppercapita_us_inflation_adjusted&domainMin:null&domainMax:null&zoomedMin:115.79&zoomedMax:144246.37&scaleType=log&spaceRef:null;&size$domainMin:null&domainMax:null&extent@:0.022083333333333333&:0.4083333333333333;;&color$which=world_6region;;;&chart-type=bubbles) now appears to be linear. 
-
-
-## Coding a logarithmic regression
-
-### Downloading the data
-
-Download the GDP data from [http://scw-aberystwyth.github.io/machine-learning-novice/data/worldbank-gdp.csv](http://scw-aberystwyth.github.io/machine-learning-novice/data/worldbank-gdp.csv)
-
-### Loading the data
-
-We need to modify our code a little to work with this example. Firstly the data is now stored in two different files so we'll have to read both of them and combine them together. The two datasets don't quite have an identical list of countries, the life expectancy data is from gapminder themselves and includes French Overseas Departments and British Overseas Territories as seperate entities, it also includes Taiwan. The GDP data is from the World Bank and doesn't differentiate many of the overseas territories/departments and doesn't include Taiwan. Some countries are also lacking GDP data, life expectancy or both. When we load the data we'll have to discard any country which doesn't have valid data in both datasets. Missing data is marked as an NaN (not a number), when loading it we'll have to check for NaN's using the `math.isnan()` function. 
-
-To match the analysis we just did on the gapminder website we only want to focus on a single year, so we'll filter the data down to a single year which the user can specify. 
-
-Finally the data is sorted in the files by country name, but to help with graphing it later on we need to sort it by life expectancy instead. For this we can use Pandas `sort_values()` function to do this. 
-
-~~~
-def read_data(gdp_file, life_expectancy_file, year):
-    df_gdp = pd.read_csv(gdp_file, index_col="Country Name")
-
-    gdp = df_gdp.loc[:, year]
-
-    df_life_expt = pd.read_csv(life_expectancy_file,
-                               index_col="Life expectancy")
-
-    # get the life expectancy for the specified country/dates
-    # we have to convert the dates to strings as pandas treats them that way
-    life_expectancy = df_life_expt.loc[:, year]
-
-    data = []
-    for country in life_expectancy.index:
-        if country in gdp.index:
-            # exclude any country where data is unknown
-            if (math.isnan(life_expectancy[country]) is False) and \
-               (math.isnan(gdp[country]) is False):
-                    data.append((country, life_expectancy[country],
-                                 gdp[country]))
-            else:
-                print("Excluding ", country, ",NaN in data (life_exp = ",
-                      life_expectancy[country], "gdp=", gdp[country], ")")
-        else:
-            print(country, "is not in the GDP country data")
-
-    combined = pd.DataFrame.from_records(data, columns=("Country",
-                                         "Life Expectancy", "GDP"))
-    combined = combined.set_index("Country")
-    # we'll need sorted data for graphing properly later on
-    combined = combined.sort_values("Life Expectancy")
-    return combined
-~~~
-{: .python}
-
-### Processing the data
-
-Once the data is loaded we'll need to convert the GDP data to its logarithmic form by using the `math.log()` function. Pandas has a special function called `apply` which can apply an operation to every item in a column, by using the statement `data["GDP"].apply(math.log)` it will calculate the logarithmic form of every value in the GDP column and turn it into a new dataframe. We'll convert the data into two lists to simplify working with it, these can be used by the least_squares, make_graph and measure_error functions. 
-
-Once we've calculated the line of best fit with the least_squares function we can graph it. But now we have two choices on how to do the graphing, we can either leave the data in its logarithmic form and draw a straight line of best fit. Or we could convert it back to its original form with the `math.exp()` function and graph the curved line of best fit. To allow us to do either we'll calculate both forms of the line of best fit and store them in the lists linear_data and log_data.
-
-~~~
-def process_data(gdp_file, life_expectancy_file, year):
-    data = read_data(gdp_file, life_expectancy_file, year)
-
-    gdp = data["GDP"].tolist()
-    gdp_log = data["GDP"].apply(math.log).tolist()
-    life_exp = data["Life Expectancy"].tolist()
-
-    m, c = least_squares([life_exp, gdp_log])
-
-    # list for logarithmic version
-    log_data = []
-    # list for raw version
-    linear_data = []
-    for x in life_exp:
-        y_log = m * x + c
-        log_data.append(y_log)
-
-        y = math.exp(y_log)
-        linear_data.append(y)
-
-    # uncomment for log version, further changes needed in make_graph too
-    # make_graph(life_exp, gdp_log, log_data)
-    make_graph(life_exp, gdp, linear_data)
-
-    err = measure_error(linear_data, gdp)
-    print("error=", err)
-    
-~~~
-{: .python}
-
-
-A small change to the least_squares function is needed to handle this data. Previously we were working with dates on the x-axis and these were all strings which the least_squares function converted into integers. Now we have life expectancy on the x-axis and that data is already floats, so we need to remove the conversion to integers. Lets change the following line in our least_squares function to do this:
-
-
-~~~
-        x = int(data[0][i])
-~~~
-{: .python}
-
-to 
-
-~~~
-        x = data[0][i]
-~~~
-{: .python}
-
-Finally to run everything we need to call the process_data function, this takes three parameters, the GDP filename, the life expectancy filename and the year we want to process as a string.
-
-~~~
-process_data("../data/worldbank-gdp.csv",
-             "../data/gapminder-life-expectancy.csv", "1980")
-~~~
-{: .python}
-
-
-### Graphing the data
-
-Previously we drew a line graph showing life expectancy over time. This made sense as a line as it was tracking a single variable over time. But now we are plotting two variables against each other and need to use a scatter graph instead, so we'll change the first `plt.plot` call to `plt.scatter`. 
-
-~~~
-def make_graph(x_data, y_data, linear_data):
-
-    plt.scatter(x_data, y_data, label="Original Data")
-    plt.plot(x_data, linear_data, color="orange", label="Line of best fit")
-
-    plt.grid()
-    plt.legend()
-
-    plt.show()
-~~~
-{: .python}
-
-The process_data function gave us a choice of plotting either the logarithmic or non-logarithmic version of the data depending on which data we pass to make_graph. If we uncomment the line `# make_graph(life_exp, gdp_log, log_data)` and comment the line `make_graph(life_exp, gdp, linear_data)` then we can switch to showing the logarithmic version. 
-
-
-> # Comparing the logarithmic and non-logarithmic graphs
+> # An Updated Regression Model 
+> 
+> The [Wikipedia page on Kepler's laws of planetary motion](https://en.wikipedia.org/wiki/Kepler%27s_laws_of_planetary_motion) 
+> has updated measurements of the astronomical
+> distance from the sun and the period which are listed below.
 >
-> Convert the code above to plot the logarithmic version of the graph.
-> Save the graph.
-> Now change back to the non-logarithmic version.
-> Compare the two graphs, which one do you think is easier to read? 
+> | Planet  | Semi-major axis around the sun (AU) | Period (days) |
+> |--       | --                                  |--             |
+> | Mercury | 0.38710                             | 87.77         |
+> | Venus   | 0.7233                              | 224.70        |
+> | Earth   | 1                                   | 365.25        |
+> | Mars    | 1.52366                             | 686.95        |
+> | Jupiter | 5.20336                             | 4332.62       |
+> | Saturn  | 9.510                               | 10759.2       |
+> | Uranus  | 19.1913                             | 30687.153     |
+> | Neptune | 30.0690                             | 60190.03      |
+>
+> Use this data to fit a regression model and estimate the period 
+> of Pluto. 
+>
+> > ## Solution
+> > 
+> > ~~~
+> > x_distance = [0.38710,0.7233,1,1.52366,5.20336,9.510,19.1913,30.0690]
+> > y_period = [87.77,224.70,365.25,686.95,4332.62,10759.2,30687.153,60190.03]
+> > m, c = least_squares([np.log(x_distance),np.log(y_period)])
+> > pluto_au = 39.5
+> > print( np.exp(c) * np.power(pluto_au,m))
+> > ~~~
+> > {: .python}
+> >
+> > Results of linear regression:
+> > m= 1.5003670408045884 c= 5.900201729955274
+> > predicted period: 90762.55504601273 days, actual period 90520 days
+> > 
+> > The results of this prediction are better than the previous one.
+> > The method may still be unsatisfactory. Rudy, Brunton, Proctor  
+> > and Kutz propose to use 
+> > [Data-driven discovery of partial differential equations](https://arxiv.org/abs/1609.06401) 
+> > as one method of fitting dynamical equations.
+> >
+> > The current fitted model does not account for the influence of the 
+> > orbiting bodies on each other. Furthermore, 
+> > [general relativity](https://en.wikipedia.org/wiki/Two-body_problem_in_general_relativity)
+> > can better describe the orbits of bodies around the sun. Discuss 
+> > how you might examine the data to separate effects of measurement 
+> > errors from modelling errors in the choice of model to apply 
+> > regression fitting to.
+> {: .solution}
 {: .challenge}
 
+> # Using Regression in Spectroscopy
+>
+> Regression is also used to calibrate instruments. As an example,
+> flourescence emission spectra obtained from different concentrations 
+> of a quinine solution can then be used to estimate the concentration 
+> of other quinine solutions. More details are availabe in this 
+> [R Vignette](http://cran.uni-muenster.de/web/packages/hyperSpec/vignettes/flu.pdf).
+> A figure of the spectra data obtained by M. Kammer shows that emissions 
+> are greatest at a wavelength of 450 nm for an input excitation at 350 nm. 
+>
+> ![Emitted intensity at different input excitation wavelengths](../fig/spectral_responses.svg) 
+>
+> Thus data at his wavelength can be used for calibrating a linear
+> regression model.
+>
+> | Concentration c / (mg / l) | Emission I 450 n.m. / a.u. |
+> |--                          |--                          | 
+> | 0.05                       | 106.95                     |
+> | 0.10                       | 213.50                     |
+> | 0.15                       | 333.78                     |
+> | 0.20                       | 446.63                     |
+> | 0.25                       | 556.52                     |
+> | 0.30                       | 672.53                     |
+>
+> ~~~
+> import matplotlib.pyplot as plt
+> import pandas as pd
+> import numpy as np
+>
+> def least_squares(data):
+>   x_sum = 0
+>   y_sum = 0
+>   x_sq_sum = 0
+>   xy_sum = 0
+>
+>   # the list of data should have two equal length columns
+>   assert len(data[0]) == len(data[1])
+>   assert len(data) == 2
+>   n = len(data[0])
+>   # least squares regression calculation
+>   for i in range(0, n):
+>       x = data[0][i]
+>       y = data[1][i]
+>       x_sum = x_sum + x
+>       y_sum = y_sum + y
+>       x_sq_sum = x_sq_sum + (x**2)
+>       xy_sum = xy_sum + (x*y)
+>
+>   m = ((n * xy_sum) - (x_sum * y_sum))
+>   m = m / ((n * x_sq_sum) - (x_sum ** 2))
+>   c = (y_sum - m * x_sum) / n
+>
+>   print("Results of linear regression:")
+>   print("m=", m, "c=", c)
+>
+>   return m, c
+>
+> def make_plot(x_data, y_data, x_label, y_label):
+>    plt.clf()
+>    plt.scatter(x_data, y_data, label="Emission intensity at 450nm")
+>    plt.grid()
+>    plt.legend()
+>    plt.xlabel(x_label)
+>    plt.ylabel(y_label)
+>    plt.savefig("emission_response_at_450nm.svg")
+>
+> spectral_data = pd.read_csv("machine-learning-novice/data/spectral_data.csv")
+> concentration_data = pd.read_csv("machine-learning-novice/data/concentration_data.csv")
+> fig = plt.figure()
+> plt.clf()
+> ax = fig.add_subplot(111)
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[0].values,
+>         label=str(concentration_data.values[0][0]))
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[1].values,
+>         label=str(concentration_data.values[1][0]))
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[2].values,
+>         label=str(concentration_data.values[2][0]))
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[3].values,
+>         label=str(concentration_data.values[3][0]))
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[4].values,
+>         label=str(concentration_data.values[4][0]))
+> ax.plot(spectral_data.columns.values.astype(np.float),
+>         spectral_data.iloc[5].values,
+>         label=str(concentration_data.values[5][0]))
+> ax.autoscale(enable=True, axis='x', tight=True)
+> ax.set_xticks([400,420,440,460,480,500])
+> ax.set_xticklabels(['400','420','440','460','480','500'])
+> plt.legend()
+> plt.xlabel("$\lambda$ nm")
+> plt.ylabel("I / a.u.")
+> plt.savefig('spectral_responses.svg')
+> x_label = "c / (mg / l)"
+> y_label = "I 450 n.m. / a.u."
+> make_plot(concentration_data.values[:,0], spectral_data["450"].values, x_label, y_label)
+>
+> ~~~
+> {. :python}
+> 
+> ![Correlation between concentration and emitted intensity](../fig/emission_response_at_450nm.svg)
+>
+> Results of linear regression:
+> m= 2268.46285714286 c= -8.66266666666714
+> It is possible to compute further fitting statistics,
+> rather than program this directly, one can use the
+> [statsmodels](https://www.statsmodels.org/stable/regression.html)
+> package.
 
-> # Removing outliers from the data
-> The correlation of GDP and life expectancy has a few big outliers that are probably increasing the error rate on this model. These are typically countries with very high GDP and sometimes not very high life expectancy. These tend to be either small countries with artificially high GDPs such as Monaco and Luxemborg or oil rich countries such as Qatar or Brunei. Kuwait, Qatar and Brunei have already been removed from this data set, but are available in the file worldbank-gdp-outliers.csv. Try experimenting with adding and removing some of these high income countries to see what effect it has on your model's error rate.
-> Do you think its a good idea to remove these outliers from your model?
-> How might you do this automatically?
+# Multilinear Regression
+
+One can extend regression models to have more than one dependent variable. Rather, than
+give full details of the derivation, a demonstration will be provided. Many datasets
+contain correlated variables.  Regression can help determine correlation between variables.
+A dataset of interest is the simulated 
+[Major Atmospheric Gamma Imaging Cherenkov Telescope project (MAGIC)](https://archive.ics.uci.edu/ml/datasets/magic+gamma+telescope) 
+dataset. The dataset contains simulations which have data that distinguishes between 
+detecting background noise and high energy gamma particles. Here, multilinear regression will 
+be used to show that some of the measurements are correlated.
+
+First setup the environment and read in the data and examine the first few entries
+```python
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+magic_data=pd.read_csv('../data/magic04.data',sep=',',header=None)
+print(magic_data.head())
+```
+
+Then extract the row entries which correspond to gamma particles and drop
+the column with the label for gamma particles
+```python
+magic_data_gamma = magic_data.query( '@magic_data[10] == "g"')
+magic_data_gamma = magic_data_gamma.drop(
+    magic_data_gamma.columns[[10]], axis = 1)
+```
+
+The resulting dataframe has the following columns:
+
+    1.  fLength:  continuous  # major axis of ellipse [mm]
+    2.  fWidth:   continuous  # minor axis of ellipse [mm] 
+    3.  fSize:    continuous  # 10-log of sum of content of all pixels [in #phot]
+    4.  fConc:    continuous  # ratio of sum of two highest pixels over fSize  [ratio]
+    5.  fConc1:   continuous  # ratio of highest pixel over fSize  [ratio]
+    6.  fAsym:    continuous  # distance from highest pixel to center, projected onto major axis [mm]
+    7.  fM3Long:  continuous  # 3rd root of third moment along major axis  [mm] 
+    8.  fM3Trans: continuous  # 3rd root of third moment along minor axis  [mm]
+    9.  fAlpha:   continuous  # angle of major axis with vector to origin [deg]
+    10. fDist:    continuous  # distance from origin to center of ellipse [mm]
+
+
+We will fit a regression model for fDist (the distance from origin to center of ellipse)
+as a function of the other quantities. Therefore, split the dataframe into a single
+column for fDist and a dataframe for the dependent variables, then use the scikit-learn
+regression fitting routine and calculate the quality of the fit using the R^2 value.
+
+```python
+fDist = magic_data_gamma[[9]]
+Variables = magic_data_gamma.drop(magic_data_gamma.columns[[9]], axis = 1)
+reg = LinearRegression().fit(Variables,fDist)
+print(reg.score(Variables,fDist))
+```
+
+The result of this gives an R^2 value of 0.42985458535037824 indicating some amount
+of correlation between fDist and the other dependent variables.
+
+> # Discussion
+> 
+> Multilinear regression has been applied without any modelling assumptions
+> to fit a physics based model or derive a physics based model. What other
+> work can you find on the internet that uses the 
+> [Major Atmospheric Gamma Imaging Cherenkov Telescope project (MAGIC)](https://archive.ics.uci.edu/ml/datasets/magic+gamma+telescope)
+> data?
+> > ## Partial Solution
+> > The original paper describing the collection of the data and its
+> > analysis is
+> > [Methods for multidimensional event classification: a case study using images from a Cherenkov gamma-ray telescope](http://www.cs.cas.cz/~savicky/papers/magic_case_study.pdf) 
+> >
+> > The dataset is also listed in the 
+> > [Open Machine Learning project](https://www.openml.org/d/1120)
+> > 
+> {: .solution}
 {: .challenge}
+
+> # Exercise
+>
+> Estimating the constant in the
+> [Hubble–Lemaître law](https://en.wikipedia.org/wiki/Hubble%27s_law)
+> has been challenging. Ignore the warning at
+> "[Redshift data for Messier Galaxies](http://www.messier.seds.org/xtra/supp/redshift.html)"
+> and see what constant can be deduced, from this data:
+>
+> | Galaxy |NGC  | RA         |      Dec  | Dist | RV_hel     | RV_gal |
+> |--      |--   |--          |--         |--    |--          |--      |
+> | M31    |224  | 00:42:44.3 | +41:16:09 |  2.9 | -300 +/- 4 | -122   |  
+> | M32    |221  | 00:42:41.8 | +40:51:52 |  2.9 | -205 +/- 8 | - 28   |
+> | M33    |598  | 01:33:50.9 | +30:39:37 |  3.0 | -179 +/- 3 | - 44   |  
+> | M49    |4472 | 12:29:46.8 | +08:00:02 | 60   |  868 +/- 8 |  800   |
+> | M51    |5194 | 13:29:52.3 | +47:11:54 | 37   |  463 +/- 3 |  551   |
+> | M51B   |5195 | 13:29:58.7 | +47:16:04 | 37   |  465 +/-10 |  553   |
+> | M58    |4579 | 12:37:43.5 | +11:49:05 | 60   | 1519 +/- 6 | 1468   |
+> | M59    |4621 | 12:42:02.5 | +11:38:49 | 60   |  424 +/-12 |  375   |
+> | M60    |4649 | 12:43:39.6 | +11:33:09 | 60   | 1413 +/-10 | 1364   |
+> | M61    |4303 | 12:21:54.9 | +04:28:25 | 60   | 1566 +/- 2 | 1483   |
+> | M63    |5055 | 13:15:49.2 | +42:01:49 | 37   |  504 +/- 4 |  570   |
+> | M64    |4826 | 12:56:44.2 | +21:41:05 | 19   |  408 +/- 4 |  400   |
+> | M65    |3623 | 11:18:55.2 | +13:05:35 | 35   |  807 +/- 3 |  723   |
+> | M66    |3627 | 11:20:15.0 | +12:59:30 | 35   |  727 +/- 3 |  643   |
+> | M74    |628  | 01:36:41.7 | +15:46:59 | 35   |  657 +/- 1 |  755   |
+> | M77    |1068 | 02:42:40.7 | -00:00:48 | 60   | 1136 +/- 4 | 1145   |
+> | M81    |3031 | 09:55:33.2 | +69:03:55 | 12   | - 34 +/- 4 |   73   |
+> | M82    |3034 | 09:55:52.2 | +69:40:47 | 12   |  203 +/- 4 |  312   |
+> | M83    |5236 | 13:37:00.8 | -29:51:59 | 15   |  516 +/- 4 |  385   |
+> | M84    |4374 | 12:25:03.6 | +12:53:14 | 60   | 1000 +/- 8 |  946   |
+> | M85    |4382 | 12:25:24.2 | +18:11:23 | 60   |  760 +/-12 |  723   |
+> | M86    |4406 | 12:26:11.7 | +12:56:46 | 60   | -227 +/- 8 | -281   |
+> | M87    |4486 | 12:30:49.4 | +12:23:28 | 60   | 1282 +/- 9 | 1229   |
+> | M88    |4501 | 12:31:59.0 | +14:25:10 | 60   | 2281 +/- 3 | 2235   |
+> | M89    |4552 | 12:35:39.9 | +12:33:25 | 60   |  321 +/-12 |  271   |
+> | M90    |4569 | 12:36:49.8 | +13:09:46 | 60   | -235 +/- 4 | -282   |
+> | M91    |4548 | 12:35:26.3 | +14:29:49 | 60   |  486 +/- 4 |  442   |
+> | M94    |4736 | 12:50:53.0 | +41:07:14 | 14.5 |  308 +/- 1 |  360   |
+> | M95    |3351 | 10:43:58.0 | +11:42:14 | 38   |  778 +/- 4 |  677   |
+> | M96    |3368 | 10:46:45.6 | +11:49:18 | 38   |  897 +/- 4 |  797   |
+> | M98    |4192 | 12:13:48.3 | +14:54:01 | 60   | -142 +/- 4 | -195   |
+> | M99    |4254 | 12:18:49.4 | +14:24:59 | 60   | 2407 +/- 3 | 2354   |
+> | M100   |4321 | 12:22:54.8 | +15:49:20 | 60   | 1571 +/- 1 | 1525   |
+> | M101   |5457 | 14:03:12.5 | +54:20:55 | 27   |  241 +/- 2 |  360   |
+> | M102   |5866 | 15:06:29.4 | +55:45:49 | 40   |  672 +/- 9 |  818   |
+> | M104   |4594 | 12:39:58.8 | -11:37:28 | 50   | 1091 +/- 5 |  971   |
+> | M105   |3379 | 10:47:49.5 | +12:34:57 | 38   |  920 +/-10 |  823   |
+> | M106   |4258 | 12:18:57.5 | +47:18:14 | 25   |  448 +/- 3 |  508   |
+> | M108   |3556 | 11:08:36.8 | +55:56:33 | 45   |  695 +/- 3 |  765   |
+> | M109   |3992 | 11:55:00.9 | +53:39:11 | 55   | 1048 +/- 4 | 1121   |
+> | M109B  |3953 | 11:53:48.9 | +52:19:36 | 55   | 1052 +/- 2 | 1121   |
+> | M110   |205  | 00:37:38.2 | +41:24:58 | 2.9  | -241 +/- 3 | - 61   |
+>
+> Can you find better data? How might you get error estimates?
+>
+> > # Solution
+> > 
+> > First plot the data
+> >
+> > ~~~
+> > import numpy as np
+> > import pandas as pd
+> > import matplotlib.pyplot as plt
+> > from sklearn.linear_model import LinearRegression
+> > dist = np.array([2.9, 2.9, 3.0, 60, 37, 37, 60, 60, 60, 60,
+> >                  37, 19, 35, 35, 35, 60, 12, 12, 15, 60, 60,
+> >                  60, 60, 60, 60, 60, 60, 14.5, 38, 38, 60, 60,
+> >                  60, 27, 40, 50, 38, 25, 45, 55, 55, 2.9])
+> >
+> > RV_hel = np.array([-300, -205, -179, 868, 463, 465, 1519, 424,
+> >                    1413, 1566, 504, 408, 807, 727, 657, 1136,
+> >                    -34, 203, 516, 1000, 760, -227, 1282, 2281,
+> >                    321, -235, 486, 308, 778, 897, -142, 2407,
+> >                    1571, 241, 672, 1091, 920, 448, 695, 1048,
+> >                    1052, -241])
+> >
+> > RV_gal = np.array([-122, -28, -44, 800, 551, 553, 1468, 375, 1364,
+> >                    1483, 570, 400, 723, 643, 755, 1145, 73, 312, 385,
+> >                    946, 723, -281, 1229, 2235, 271, -282, 442, 360,
+> >                    677, 797, -195, 2354, 1525, 360, 818, 971, 823,
+> >                    508, 765, 1121, 1121, -61])
+> >
+> > plt.scatter(dist, RV_hel, label="Heliocentric",
+> >             dist, RV_gal, label="w.r.t. Galactic Standard of Rest")
+> >
+> > plt.grid()
+> > plt.legend()
+> > plt.xlabel("Distance (Mega light years)")
+> > plt.ylabel("Velocity (Km/sec)")
+> >
+> > plt.save('galaxies_hubble_lemaître_graph.svg')
+> > ~~~
+> > {. :python}
+> >
+> > ![graph of distance of a galaxy against velocity](../fig/galaxies_hubble_lemaître_graph.svg)
+> >
+> > We should expect to find an almost linear relationship for
+> > galaxies that are close, which we choose here to be less than 40
+> >
+> > ~~~
+> > selected = dist < 40
+> > dist_selected = dist[selected]
+> > RV_gal_selected = RV_gal[selected]
+> > reg_gal = LinearRegression().fit(dist_selected,RV_gal_selected)
+> > print(reg_gal.score(dist_selected,RV_gal_selected))
+> > ~~~
+> > {. :python}
+> > 
+> > The resulting output gives an R^2 value of
+> > 0.886403388864515 and a slope of 20.53909573 (Km/sec)/(Mega light year),
+> > or approximately 67 (Km/sec)/(MPC). Most values are between
+> > 50 and 90 (Km/sec)/(MPC).
+> > 
+> > It is also possible to use the same data that Edwin Hubble
+> > used in his work 
+> > [A relation between distance and radial velocity among extra-galactic nebulae ](https://doi.org/10.1073/pnas.15.3.168)
+> > What value do you obtain from this?
+> >
+> > You might also find it convenient to query the NED database directly
+> > to get data, an example notebook demonstrating this is available at:
+> > http://ned.ipac.caltech.edu/Documents/Guides/Interface/PythonNotebook
+> > or download material from the 
+> > [NED1D website](http://ned.ipac.caltech.edu/level5/NED1D/intro.html).
+> > The [Simbad database](http://simbad.u-strasbg.fr/simbad/sim-id?Ident=M+54)
+> > may also be helpful. An example of how to query it directly from Python 
+> > is available in the 
+> > [astroquery documentation](https://astroquery.readthedocs.io/en/latest/)
+> > A summary of relevant work can be found in 
+> > Freedman and Madore [The Hubble Constant](https://arxiv.org/abs/1004.1856)
+> {: .solution}
+{: .challenge}
+
+> # Exercise
+>
+> Using regression to estimate distances from redshift data
+>
+> - [Photometric Redshifts](https://ned.ipac.caltech.edu/level5/Glossary/Essay_photredshifts.html)
+> - Connolly et al. [Slicing Through Multicolor Space: Galaxy Redshifts From Broadband Photometry ](https://arxiv.org/abs/astro-ph/9508100)
+> - Battisti et al. [MAGPHYS+photo-z: Constraining the Physical Properties of Galaxies with Unknown Redshifts](https://arxiv.org/abs/1908.00771) [code](http://www.iap.fr/magphys/index.html)
+> - Sadeh, Abdalla and Lahav, [ANNz2 - photometric redshift and probability distribution function estimation using machine learning](http://arxiv.org/abs/1507.00490) [code](https://github.com/IftachSadeh/ANNZ)
+> - Bolzonella, Miralles and Pello', [Photometric Redshifts based on standard SED fitting procedures](https://arxiv.org/abs/astro-ph/0003380)
+> Crenshaw and Connolly [Learning Spectral Templates for Photometric Redshift Estimation from Broadband Photometry](https://arxiv.org/abs/2008.04291)
+
+> # Bonus: Regression for fitting dynamical equations
+>
+> A number of problems in physics can be modelled using differential equations.
+> Estimating the parameters of these equations can from observations of physical
+> systems that follow them can also be done using regression. As an example,
+> consider the  
+> [Krogdahl equation](https://en.wikipedia.org/wiki/List_of_nonlinear_ordinary_differential_equations)
+> for [stellar pulsations](https://en.wikipedia.org/wiki/Stellar_pulsation).
+>
+> q'' = -q + (2/3)&lambda;q^2 - (14/27)&lambda;^2q^3 + &mu;(1-q^2)q' + (2/3)&lambda;(1 - &lambda;q)(q')^2
+> 
+> rather than use pulsation observations, this equation is simulated, and then it is shown
+> that it is possible to recover the form of the equation from the observations. The
+> program [pysindy](https://github.com/dynamicslab/pysindy) is used:
+>
+> ~~~
+> import matplotlib.pyplot as plt
+> from mpl_toolkits.mplot3d import Axes3D
+> from matplotlib.cm import rainbow
+> import numpy as np
+> from scipy.integrate import odeint
+> from scipy.io import loadmat
+> 
+> import pysindy as ps
+>
+> # Generate training data
+> # for the  [Krogdahl equation](https://en.wikipedia.org/wiki/List_of_nonlinear_ordinary_differential_equations)
+> # for [stellar pulsations](https://en.wikipedia.org/wiki/Stellar_pulsation)
+>
+> # Equation parameters
+> mu = 1.2
+> lam = 1.5
+> def f(q, t):
+>    return [
+>        q[1],
+>        -1 * q[0] + (2/3) * lam * q[0] ** 2 - (14/27) * (lam ** 2) * q[0] ** 3 +
+>        mu * (1 - q[0] ** 2) * q[1] + (2/3) * lam * (1 - lam * q[0]) * ( q[1] ** 2),
+>    ]
+> dt = 0.01
+> t_train = np.arange(0, 25, dt)
+> q0_train = [2, 0]
+> q_train = odeint(f, q0_train, t_train)
+> # Fit the model
+> 
+> poly_order = 5
+> threshold = 0.01
+> model = ps.SINDy(
+>    optimizer=ps.STLSQ(threshold=threshold),
+>    feature_library=ps.PolynomialLibrary(degree=poly_order),
+> )
+> model.fit(q_train, t=dt)
+> model.print()
+> print("Expected equation\n")
+> print("x0' = x1\n")
+> print("x1' = -1 * x0 + %f * x0 ** 2 - %f * x0 ** 3 + %f * x1  - %f * (x0 ** 2) * x1 + %f *  x1 ** 2  - %f * x0 * x1 ** 2"%( (2.0/3.0) * lam, (14.0/27.0) * (lam ** 2), mu, mu, (2/3) * lam, (2/3) * ( lam ** 2)))
+>
+> # Simulate and plot the results
+> 
+> q_sim = model.simulate(q0_train, t_train)
+> plot_kws = dict(linewidth=2.5)
+>
+> fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+> axs[0].plot(t_train, q_train[:, 0], "r", label="$q_0$", **plot_kws)
+> axs[0].plot(t_train, q_train[:, 1], "b", label="$q_1$", alpha=0.4, **plot_kws)
+> axs[0].plot(t_train, q_sim[:, 0], "k--", label="model", **plot_kws)
+> axs[0].plot(t_train, q_sim[:, 1], "k--")
+> axs[0].legend()
+> axs[0].set(xlabel="t", ylabel="$q_k$")
+> 
+> axs[1].plot(q_train[:, 0], q_train[:, 1], "r", label="$q_k$", **plot_kws)
+> axs[1].plot(q_sim[:, 0], q_sim[:, 1], "k--", label="model", **plot_kws)
+> axs[1].legend()
+> axs[1].set(xlabel="$q_1$", ylabel="$q_2$")
+> fig.savefig('sindy_krogdhal.svg')
+> ~~~
+> {. :python}
+>
+> ![graph of recovered vs actual trajectories](../fig/sindy_krogdhal.svg)
+>
+> Fitting is sensitive to the threshold parameter used, and at present
+> is only for polynomial nonlinearities, though one can modify it to
+> work for other types of nonlinearities.
+>
+> More details on using regression methods for dynamical systems and 
+> combining physics with machine learning can be found in:
+> 
+> - de Silva, Champion, Quade, Loiseau, Kutz, and Brunton. [PySINDy: a Python package for the sparse identification of nonlinear dynamics from data](https://arxiv.org/abs/2004.08424)
+> - Brunton, Proctor, and Kutz. [Discovering governing equations from data by sparse identification of nonlinear dynamical systems](http://dx.doi.org/10.1073/pnas.1517384113)
+> - Raissi, Perdikaris and Karniadakis [Phyics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations](https://github.com/maziarraissi/PINNs)
+{. :solution}
+
+# Further Reading
+- https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html
